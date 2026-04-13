@@ -1,0 +1,68 @@
+function ob = obliqueShockWeak(M1, deltaDeg, gamma)
+% Solves weak oblique shock relations for given M1 and turning angle delta.
+
+    if nargin < 3
+        gamma = 1.4;
+    end
+
+    if M1 <= 1
+        error('Oblique shock requires upstream Mach number greater than 1.');
+    end
+
+    if deltaDeg <= 0
+        error('Deflection angle must be greater than 0 degrees.');
+    end
+
+    ob.M1 = M1;
+    ob.delta_deg = deltaDeg;
+    ob.gamma = gamma;
+    ob.attached = true;
+
+    % A.Range of possible beta values
+    betaMin = asind(1 / M1) + 1e-6;
+    betaMax = 89.9;
+    betas = linspace(betaMin, betaMax, 5000);
+
+    deltas = arrayfun(@(b) thetaBetaMachDelta(M1, b, gamma), betas);
+    deltaMax = max(deltas);
+
+    ob.deltaMax_deg = deltaMax;
+
+    if deltaDeg > deltaMax
+        ob.attached = false;
+        return;
+    end
+
+    % B.Weak shock branch
+    f = @(beta) thetaBetaMachDelta(M1, beta, gamma) - deltaDeg;
+
+    idx = find(deltas >= deltaDeg, 1, 'first');
+    if isempty(idx) || idx == 1
+        ob.attached = false;
+        return;
+    end
+
+    beta1 = betas(idx - 1);
+    beta2 = betas(idx);
+
+    betaWeak = fzero(f, [beta1 beta2]);
+
+    % C.Normal component of upstream Mach number
+    M1n = M1 * sind(betaWeak);
+
+    % D.Use normal shock relations on the normal component
+    ns = normalShock(M1n, gamma);
+
+    % E.Downstream Mach number after oblique shock
+    M2 = ns.M2 / sind(betaWeak - deltaDeg);
+
+    ob.beta_deg = betaWeak;
+    ob.M1n = M1n;
+    ob.M2n = ns.M2;
+    ob.M2 = M2;
+
+    ob.p2_p1 = ns.p2_p1;
+    ob.rho2_rho1 = ns.rho2_rho1;
+    ob.T2_T1 = ns.T2_T1;
+    ob.p02_p01 = ns.p02_p01;
+end

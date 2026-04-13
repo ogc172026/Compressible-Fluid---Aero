@@ -1,0 +1,27 @@
+function ns = normalShock(M1, gamma) 
+% FOR perfect gas ONLY
+
+    if nargin < 2
+        gamma = 1.4;
+    end
+
+    if M1 <= 1
+        error('Upstream Mach number for a normal shock must be greater than 1.');
+    end
+
+    ns.M1 = M1;
+    ns.gamma = gamma;
+
+    % A. Downstream Mach number
+    ns.M2 = sqrt((1 + (gamma - 1)/2 * M1^2) / (gamma * M1^2 - (gamma - 1)/2));
+
+    % B. Static property ratios
+    ns.p2_p1 = 1 + (2 * gamma / (gamma + 1)) * (M1^2 - 1);
+    ns.rho2_rho1 = ((gamma + 1) * M1^2) / ((gamma - 1) * M1^2 + 2);
+    ns.T2_T1 = ns.p2_p1 / ns.rho2_rho1;
+
+    % C.Total pressure ratio across shock
+    term1 = ((gamma + 1) * M1^2) / ((gamma - 1) * M1^2 + 2);
+    term2 = (gamma + 1) / (2 * gamma * M1^2 - (gamma - 1));
+    ns.p02_p01 = term1^(gamma/(gamma - 1)) * term2^(1/(gamma - 1));
+end
